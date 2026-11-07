@@ -1,11 +1,11 @@
-﻿name: Keep servers awake
+name: Keep servers awake
 
 # Free Render services sleep after ~15 idle minutes; pinging keeps them
 # responsive. BUT Render's free tier gives 750 instance-hours a MONTH shared
 # across every free service on the account. The budget is split:
-#   Noted API   03:00-17:59 UTC (08:30-23:29 IST)  ~465 h/month  (this file)
-#   ShopNGo API 03:00-09:59 UTC (08:30-15:29 IST)  ~217 h/month  (keep-shopngo-awake.yml)
-# Total ~682 of 750, with headroom for a future service. Outside its window
+#   Noted API   03:00-14:59 UTC (08:30-20:29 IST)  ~372 h/month  (this file)
+#   ShopNGo API 04:00-10:59 UTC (09:30-16:29 IST)  ~217 h/month  (keep-shopngo-awake.yml)
+# Total ~589 of 750, with headroom for a future service. Outside its window
 # a service just cold-starts (~50s) for the first visitor - nothing stops
 # working.
 #
@@ -19,7 +19,7 @@
 
 on:
   schedule:
-    - cron: '*/10 3-17 * * *'
+    - cron: '*/10 3-14 * * *'
   workflow_dispatch:
 
 jobs:

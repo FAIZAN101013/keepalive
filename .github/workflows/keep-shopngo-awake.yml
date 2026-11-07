@@ -1,7 +1,7 @@
 name: Keep ShopNGo awake
 
 # ShopNGo's share of the Render hours budget (see keep-servers-awake.yml):
-# awake 03:00-09:59 UTC = 08:30-15:29 IST, office hours, when a recruiter
+# awake 04:00-10:59 UTC = 09:30-16:29 IST, office hours, when a recruiter
 # is most likely to open the portfolio. ~217 h/month.
 #
 # Outside the window the first visitor waits ~50s for a cold start - or run
@@ -9,7 +9,7 @@ name: Keep ShopNGo awake
 
 on:
   schedule:
-    - cron: '*/14 3-9 * * *'
+    - cron: '*/14 4-10 * * *'
   workflow_dispatch:
 
 jobs:
