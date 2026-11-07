@@ -1,0 +1,21 @@
+name: Keep ShopNGo awake
+
+# ShopNGo's share of the Render hours budget (see keep-servers-awake.yml):
+# awake 03:00-09:59 UTC = 08:30-15:29 IST, office hours, when a recruiter
+# is most likely to open the portfolio. ~217 h/month.
+#
+# Outside the window the first visitor waits ~50s for a cold start - or run
+# this workflow by hand (Run workflow button) a minute before a demo.
+
+on:
+  schedule:
+    - cron: '*/14 3-9 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Ping /health
+        run: curl --fail --silent --show-error --max-time 120 https://shopngo-api.onrender.com/health && echo "ShopNGo is awake"

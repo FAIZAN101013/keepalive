@@ -1,15 +1,15 @@
-name: Keep servers awake
+﻿name: Keep servers awake
 
 # Free Render services sleep after ~15 idle minutes; pinging keeps them
 # responsive. BUT Render's free tier gives 750 instance-hours a MONTH shared
-# across every free service on the account — 24/7 for one service is already
-# 720. So the Noted API is kept awake only 00:00–18:59 UTC (05:30–00:29 IST):
-# responsive all day in India, allowed to sleep overnight (~570 h/month),
-# leaving headroom for other services to wake on demand.
+# across every free service on the account. The budget is split:
+#   Noted API   01:00-17:59 UTC (06:30-23:29 IST)  ~527 h/month  (this file)
+#   ShopNGo API 03:00-09:59 UTC (08:30-15:29 IST)  ~217 h/month  (keep-shopngo-awake.yml)
+# Total ~744 of 750. Outside its window a service just cold-starts (~50s)
+# for the first visitor.
 #
-# ADD a server:    add a curl line below. Mind the hours budget above —
-#                  prefer adding it to wake-shopngo.yml-style manual wake
-#                  workflows unless it truly needs to stay awake.
+# ADD a server:    add a curl line below AND rebalance the hour windows so
+#                  the monthly total stays under 750.
 # REMOVE a server: delete its curl line.
 # PAUSE all pings: Actions tab -> this workflow -> "..." -> Disable workflow.
 #
@@ -18,7 +18,7 @@ name: Keep servers awake
 
 on:
   schedule:
-    - cron: '*/10 0-18 * * *'
+    - cron: '*/10 1-17 * * *'
   workflow_dispatch:
 
 jobs:
