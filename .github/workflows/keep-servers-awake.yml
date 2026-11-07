@@ -1,15 +1,24 @@
 name: Keep servers awake
 
-# Free-tier web hosts (Render etc.) sleep after ~15 idle minutes; pinging
-# every 10 minutes keeps them responsive.
+# Free Render services sleep after ~15 idle minutes; pinging keeps them
+# responsive. BUT Render's free tier gives 750 instance-hours a MONTH shared
+# across every free service on the account — 24/7 for one service is already
+# 720. So the Noted API is kept awake only 00:00–18:59 UTC (05:30–00:29 IST):
+# responsive all day in India, allowed to sleep overnight (~570 h/month),
+# leaving headroom for other services to wake on demand.
 #
-# ADD a server:    add one curl line below, same pattern. No secrets needed.
+# ADD a server:    add a curl line below. Mind the hours budget above —
+#                  prefer adding it to wake-shopngo.yml-style manual wake
+#                  workflows unless it truly needs to stay awake.
 # REMOVE a server: delete its curl line.
 # PAUSE all pings: Actions tab -> this workflow -> "..." -> Disable workflow.
+#
+# GitHub cron is best effort: short intervals are sometimes delayed, so an
+# occasional cold start can still happen. The app retries, so that is fine.
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/10 0-18 * * *'
   workflow_dispatch:
 
 jobs:
@@ -20,4 +29,4 @@ jobs:
       - name: Ping servers
         run: |
           # Noted API (Render)
-          curl -fsS -m 60 https://noted-api-orcm.onrender.com/health && echo "noted-api awake" || echo "noted-api ping failed (may be waking)"
+          curl -fsS -m 120 https://noted-api-orcm.onrender.com/health && echo "noted-api awake" || echo "noted-api ping failed (may be waking)"

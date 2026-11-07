@@ -1,0 +1,17 @@
+name: Wake ShopNGo (manual)
+
+# ShopNGo is a portfolio project: it does not need to stay awake all day
+# (that would eat Render's shared 750 free hours/month). Instead, run this
+# by hand from the Actions tab a minute before showing the site to someone —
+# a cold start takes ~50 seconds, which this absorbs.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  wake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Wake /health
+        run: curl --fail --silent --show-error --max-time 120 https://shopngo-api.onrender.com/health && echo "ShopNGo is awake"
