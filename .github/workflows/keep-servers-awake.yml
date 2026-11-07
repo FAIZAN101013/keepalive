@@ -3,10 +3,11 @@
 # Free Render services sleep after ~15 idle minutes; pinging keeps them
 # responsive. BUT Render's free tier gives 750 instance-hours a MONTH shared
 # across every free service on the account. The budget is split:
-#   Noted API   01:00-17:59 UTC (06:30-23:29 IST)  ~527 h/month  (this file)
+#   Noted API   03:00-17:59 UTC (08:30-23:29 IST)  ~465 h/month  (this file)
 #   ShopNGo API 03:00-09:59 UTC (08:30-15:29 IST)  ~217 h/month  (keep-shopngo-awake.yml)
-# Total ~744 of 750. Outside its window a service just cold-starts (~50s)
-# for the first visitor.
+# Total ~682 of 750, with headroom for a future service. Outside its window
+# a service just cold-starts (~50s) for the first visitor - nothing stops
+# working.
 #
 # ADD a server:    add a curl line below AND rebalance the hour windows so
 #                  the monthly total stays under 750.
@@ -18,7 +19,7 @@
 
 on:
   schedule:
-    - cron: '*/10 1-17 * * *'
+    - cron: '*/10 3-17 * * *'
   workflow_dispatch:
 
 jobs:
