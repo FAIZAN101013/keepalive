@@ -1,0 +1,23 @@
+name: Keep servers awake
+
+# Free-tier web hosts (Render etc.) sleep after ~15 idle minutes; pinging
+# every 10 minutes keeps them responsive.
+#
+# ADD a server:    add one curl line below, same pattern. No secrets needed.
+# REMOVE a server: delete its curl line.
+# PAUSE all pings: Actions tab -> this workflow -> "..." -> Disable workflow.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping servers
+        run: |
+          # Noted API (Render)
+          curl -fsS -m 60 https://noted-api-orcm.onrender.com/health && echo "noted-api awake" || echo "noted-api ping failed (may be waking)"

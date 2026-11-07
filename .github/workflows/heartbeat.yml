@@ -1,0 +1,28 @@
+name: Repo heartbeat
+
+# GitHub auto-disables scheduled workflows in repos with no activity for 60
+# days. This monthly self-commit keeps the schedules in this repo enabled
+# forever. Do not delete.
+
+on:
+  schedule:
+    - cron: '7 4 1 * *' # monthly, on the 1st
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  beat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Commit timestamp
+        run: |
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > heartbeat.txt
+          git config user.name "keepalive-bot"
+          git config user.email "actions@github.com"
+          git add heartbeat.txt
+          git commit -m "heartbeat: keep schedules enabled" || echo "nothing to commit"
+          git push

@@ -1,0 +1,117 @@
+name: Keep resume-optimizer Supabase alive
+
+# v2 logic (moved here from the resume-optimizer repo so that repo can be
+# private without burning Actions minutes).
+#
+# Why a write: six green anon-key REST reads (17 Aug - 3 Sep 2026) did not
+# stop the project pausing around 6 Sep. Cheap anonymous reads do not reset
+# Supabase's inactivity timer. So this workflow:
+#   1. pings REST to learn whether the project is up,
+#   2. performs a WRITE to the keepalive table (service role - this is the
+#      part that counts as activity),
+#   3. if the project turns out to be paused anyway, triggers a restore
+#      through the Supabase Management API instead of just going red.
+#
+# Secrets used (THIS repo: Settings -> Secrets and variables -> Actions).
+# Values come fresh from the Supabase dashboard - old repo secrets cannot be
+# viewed or copied:
+#   RESUME_OPT_SUPABASE_URL                required  e.g. https://xxxx.supabase.co
+#   RESUME_OPT_SUPABASE_ANON_KEY           required  public-by-design; the read
+#   RESUME_OPT_SUPABASE_SERVICE_ROLE_KEY   required  dashboard -> Settings -> API.
+#                                          Bypasses RLS - exists ONLY here.
+#   RESUME_OPT_SUPABASE_ACCESS_TOKEN       optional  supabase.com/dashboard/account/tokens
+#                                          enables the self-healing restore.
+#
+# The project database needs migration 0003_keepalive.sql (the keepalive
+# table); without it the write step fails loudly, which is correct.
+#
+# ADD another Supabase project: copy this file, rename it, change the cron
+# minute, replace every RESUME_OPT_ with a new prefix, add that prefix's
+# secrets. Full steps in README.md.
+# REMOVE this project: delete this file (and its secrets).
+
+on:
+  schedule:
+    # Daily, off the top of the hour (:00 is GitHub's most skipped cron slot).
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Ping, write activity, self-heal
+        env:
+          URL: ${{ secrets.RESUME_OPT_SUPABASE_URL }}
+          ANON: ${{ secrets.RESUME_OPT_SUPABASE_ANON_KEY }}
+          SERVICE: ${{ secrets.RESUME_OPT_SUPABASE_SERVICE_ROLE_KEY }}
+          ACCESS_TOKEN: ${{ secrets.RESUME_OPT_SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$ANON" ]; then
+            echo "::error::RESUME_OPT_SUPABASE_URL / RESUME_OPT_SUPABASE_ANON_KEY secrets are not set"
+            exit 1
+          fi
+
+          # ---- 1. Is the project awake? -----------------------------------
+          status=$(curl -s -o /tmp/body -w "%{http_code}" --max-time 20 \
+            "$URL/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: $ANON" -H "Authorization: Bearer $ANON" || echo 000)
+          echo "read ping: HTTP $status"
+
+          if [ "$status" -ge 200 ] && [ "$status" -lt 300 ]; then
+
+            # ---- 2. Real activity: a write --------------------------------
+            if [ -z "$SERVICE" ]; then
+              echo "::warning::RESUME_OPT_SUPABASE_SERVICE_ROLE_KEY is not set - only a read ran, and reads did not prevent the last pause. Add the secret."
+              exit 0
+            fi
+
+            wstatus=$(curl -s -o /tmp/wbody -w "%{http_code}" --max-time 20 \
+              -X POST "$URL/rest/v1/keepalive" \
+              -H "apikey: $SERVICE" -H "Authorization: Bearer $SERVICE" \
+              -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+              -d '{"note":"github-action"}')
+            echo "write: HTTP $wstatus"
+
+            if [ "$wstatus" -lt 200 ] || [ "$wstatus" -ge 300 ]; then
+              echo "::error::Keepalive write failed with HTTP $wstatus (has migration 0003_keepalive.sql been run?)"
+              cat /tmp/wbody
+              exit 1
+            fi
+
+            # Cleanup is a second write; the table never grows past a few rows.
+            cutoff=$(date -u -d '2 days ago' +%Y-%m-%dT%H:%M:%SZ)
+            curl -s -o /dev/null -w "cleanup: HTTP %{http_code}\n" --max-time 20 \
+              -X DELETE "$URL/rest/v1/keepalive?pinged_at=lt.$cutoff" \
+              -H "apikey: $SERVICE" -H "Authorization: Bearer $SERVICE"
+
+            echo "Supabase is awake and real write activity was recorded."
+            exit 0
+          fi
+
+          # ---- 3. Paused (or down): try to restore it ---------------------
+          echo "Project did not answer (HTTP $status)."
+          cat /tmp/body || true
+
+          if [ -z "$ACCESS_TOKEN" ]; then
+            echo "::error::Project appears paused and RESUME_OPT_SUPABASE_ACCESS_TOKEN is not set, so it cannot be restored automatically. Restore it in the dashboard, and add the token to make this self-healing."
+            exit 1
+          fi
+
+          ref=$(echo "$URL" | sed -E 's#https?://##; s#\.supabase\.co/?##')
+          rstatus=$(curl -s -o /tmp/rbody -w "%{http_code}" --max-time 30 \
+            -X POST "https://api.supabase.com/v1/projects/$ref/restore" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json")
+          echo "restore request: HTTP $rstatus"
+
+          if [ "$rstatus" -ge 200 ] && [ "$rstatus" -lt 300 ]; then
+            echo "::warning::Project was paused - restore has been triggered. It takes a few minutes to come back; tomorrow's run should be green."
+            exit 0
+          fi
+
+          echo "::error::Restore request failed with HTTP $rstatus"
+          cat /tmp/rbody
+          exit 1
