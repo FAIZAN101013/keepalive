@@ -1,4 +1,4 @@
-name: Keep resume-optimizer Supabase alive
+﻿name: Keep resume-optimizer Supabase alive
 
 # v2 logic (moved here from the resume-optimizer repo so that repo can be
 # private without burning Actions minutes).
@@ -44,10 +44,10 @@ jobs:
     steps:
       - name: Ping, write activity, self-heal
         env:
-          URL: ${{ secrets.RESUME_OPT_SUPABASE_URL }}
-          ANON: ${{ secrets.RESUME_OPT_SUPABASE_ANON_KEY }}
-          SERVICE: ${{ secrets.RESUME_OPT_SUPABASE_SERVICE_ROLE_KEY }}
-          ACCESS_TOKEN: ${{ secrets.RESUME_OPT_SUPABASE_ACCESS_TOKEN }}
+          URL: ${{ secrets.RESUME_OPT_SUPABASE_URL || secrets.SUPABASE_URL }}
+          ANON: ${{ secrets.RESUME_OPT_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
+          SERVICE: ${{ secrets.RESUME_OPT_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ACCESS_TOKEN: ${{ secrets.RESUME_OPT_SUPABASE_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           if [ -z "$URL" ] || [ -z "$ANON" ]; then
             echo "::error::RESUME_OPT_SUPABASE_URL / RESUME_OPT_SUPABASE_ANON_KEY secrets are not set"
