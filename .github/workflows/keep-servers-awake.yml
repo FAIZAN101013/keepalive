@@ -30,4 +30,4 @@ jobs:
       - name: Ping servers
         run: |
           # Noted API (Render)
-          curl -fsS -m 120 https://noted-api-orcm.onrender.com/health && echo "noted-api awake" || echo "noted-api ping failed (may be waking)"
+          curl -fsS -m 120 https://noted-api-orcm.onrender.com/ping && echo "noted-api awake" || echo "noted-api ping failed (may be waking)"
